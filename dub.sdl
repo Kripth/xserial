@@ -1,0 +1,6 @@
+name "xserial"
+description "Serialization library"
+authors "Kripth"
+license "MIT"
+targetType "library"
+dependency "xbuffer" version="~>1.0"
