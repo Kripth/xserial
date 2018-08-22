@@ -50,3 +50,11 @@ template Length(T) if(isIntegral!T) { enum Length = LengthImpl(T.stringof, -1); 
 template Length(T) if(isVar!T) { enum Length = LengthImpl(T.Base.stringof, EndianType.var); }
 
 struct Custom(T) if(is(T == struct) || is(T == class)) { alias C = T; }
+
+unittest {
+
+	// for code coverage
+
+	EndianLength!uint(Endian.bigEndian);
+
+}
