@@ -23,3 +23,75 @@ struct Foo { ubyte a, b, c; }
 Foo foo = Foo(1, 2, 4);
 assert(foo.serialize.deserialize!Foo == foo);
 ```
+
+Usage
+-----
+
+## Serialization
+
+The `serialize` template is publicly imported in the `xserial` module. It takes, optionally, the endianness and the array length to be used for serializing; if not provided the system's endianness is used and `size_t` is used to encode arrays' lengths.
+
+The first runtime argument is always the value that needs to be serialized and the second optional argument is a [xbuffer](https://github.com/Kripth/xbuffer)'s `Buffer`, that can be used when serializing more than one type by reusing the buffer.
+
+The `serialize` template always returns an array of unsigned bytes.
+
+```
+ubyte[] serialize!(Endian endianness=std.system.endian, L=size_t, T)(T value, Buffer buffer=new Buffer(64));
+```
+
+## Deserialization
+
+The `deserialize` template has similar arguments as the `serialize` template, except the first runtime argument, the value to serialize, is passed as a type as the first compile-time argument.
+
+It returns an instance of the type passed at compile-time or throws a `BufferOverflowException` when there's not enough data to read.
+
+```
+T deserialize!(T, Endian endianness=std.system.endian, L=size_t)(Buffer buffer);
+T deserialize!(T, Endian endianness=std.system.endian, L=size_t)(in ubyte[] buffer);
+```
+
+## Attributes
+
+In structs and classes all public variables are serialized and deserialized. How they are serialized can be changed using attributes.
+
+One attribute for each group can be used on a variable.
+
+### Exclusion
+
+#### @Exclude
+Excludes the variable from being serialized and deserialized.
+
+#### @EncodeOnly
+Excludes the variable from being deserialized.
+
+#### @DecodeOnly
+Excludes the variable from being serialized.
+
+### Conditional
+
+#### @Condition(string)
+Only serializes and deserializes the variable when the condition is true.
+```d
+struct Test {
+
+	int a;
+	@Condition("a == 0") int b;
+
+}
+```
+
+### Type encoding
+
+#### @BigEndian
+
+#### @LittleEndian
+
+#### @Var
+
+### Array's Length
+
+#### @Length!(type)
+
+#### @EndianLength!(type)(Endian)
+
+#### @NoLength
