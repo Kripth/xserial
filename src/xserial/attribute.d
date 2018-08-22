@@ -39,7 +39,7 @@ enum LittleEndian;
 
 enum Var;
 
-enum Bytes;
+enum NoLength;
 
 struct LengthImpl { string type; int endianness; }
 
