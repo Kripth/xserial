@@ -5,6 +5,8 @@ import std.traits : isIntegral;
 
 import xbuffer.varint : isVar;
 
+import xserial.serial : EndianType;
+
 /**
  * Excludes the field from both encoding and decoding.
  */
@@ -37,23 +39,28 @@ enum BigEndian;
 /// ditto
 enum LittleEndian;
 
+/**
+ * Encodes and decodes as a Google varint.
+ */
 enum Var;
 
+/**
+ * Indicates that the array has no length. It should only be used
+ * as last field in the class/struct.
+ */
 enum NoLength;
 
 struct LengthImpl { string type; int endianness; }
-
-LengthImpl EndianLength(T)(Endian endianness) if(isIntegral!T) { return LengthImpl(T.stringof, endianness); }
 
 template Length(T) if(isIntegral!T) { enum Length = LengthImpl(T.stringof, -1); }
 
 template Length(T) if(isVar!T) { enum Length = LengthImpl(T.Base.stringof, EndianType.var); }
 
+LengthImpl EndianLength(T)(Endian endianness) if(isIntegral!T) { return LengthImpl(T.stringof, endianness); }
+
 struct Custom(T) if(is(T == struct) || is(T == class)) { alias C = T; }
 
-unittest {
-
-	// for code coverage
+unittest { // for code coverage
 
 	EndianLength!uint(Endian.bigEndian);
 
