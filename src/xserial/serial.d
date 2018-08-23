@@ -4,6 +4,7 @@ import std.system : Endian, endian;
 import std.traits : isArray, isDynamicArray, isStaticArray, isAssociativeArray, ForeachType, KeyType, ValueType, isIntegral, isFloatingPoint, isSomeChar, isType, isCallable, isPointer, hasUDA, getUDAs;
 
 import xbuffer.buffer : canSwapEndianness, Buffer, BufferOverflowException;
+import xbuffer.memory : xalloc, xfree;
 import xbuffer.varint : isVar;
 
 import xserial.attribute;
@@ -18,7 +19,9 @@ ubyte[] serialize(Endian endianness, L, T)(T value, Buffer buffer) {
 
 /// ditto
 ubyte[] serialize(Endian endianness, L, T)(T value) {
-	return serialize!(endianness, L, T)(value, new Buffer(64));
+	Buffer buffer = xalloc!Buffer(64);
+	scope(exit) xfree(buffer);
+	return serialize!(endianness, L, T)(value, buffer).dup;
 }
 
 /// ditto
@@ -49,8 +52,10 @@ T deserialize(T, Endian endianness, L)(Buffer buffer) {
 }
 
 /// ditto
-T deserialize(T, Endian endianness, L)(in ubyte[] buffer) {
-	return deserialize!(T, endianness, L)(new Buffer(buffer));
+T deserialize(T, Endian endianness, L)(in ubyte[] data) {
+	Buffer buffer = xalloc!Buffer(data);
+	scope(exit) xfree(buffer);
+	return deserialize!(T, endianness, L)(buffer);
 }
 
 /// ditto
@@ -59,8 +64,8 @@ T deserialize(T, Endian endianness)(Buffer buffer) {
 }
 
 /// ditto
-T deserialize(T, Endian endianness)(in ubyte[] buffer) {
-	return deserialize!(T, endianness, size_t)(buffer);
+T deserialize(T, Endian endianness)(in ubyte[] data) {
+	return deserialize!(T, endianness, size_t)(data);
 }
 
 /// ditto
@@ -69,8 +74,8 @@ T deserialize(T)(Buffer buffer) {
 }
 
 /// ditto
-T deserialize(T)(in ubyte[] buffer) {
-	return deserialize!(T, endian, size_t)(buffer);
+T deserialize(T)(in ubyte[] data) {
+	return deserialize!(T, endian, size_t)(data);
 }
 
 // -----------
