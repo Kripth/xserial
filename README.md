@@ -58,6 +58,8 @@ One attribute for each group can be used on a variable.
 
 ### Exclusion
 
+Exclusion attributes indicate whether to serialize and deserialize a varible.
+
 #### @Exclude
 Excludes the variable from being serialized and deserialized.
 
@@ -69,29 +71,61 @@ Excludes the variable from being serialized.
 
 ### Conditional
 
+Conditional attributes indicate when to serialize and deserialize a variable.
+
 #### @Condition(string)
 Only serializes and deserializes the variable when the condition is true.
 ```d
 struct Test {
 
-	int a;
-	@Condition("a == 0") int b;
+    ubyte a;
+    @Condition("a == 0") ubyte b;
 
 }
+
+assert(Test(0, 1).serialize() == [0, 1]);
+assert(Test(1, 0).serialize() == [1]);
 ```
 
 ### Type encoding
 
+Type encoding attributes indicate how to serialize and deserialize a variable.
+
 #### @BigEndian
+
+Indicates that the variable (or the elements of the array) are always encoded as big-endian.
 
 #### @LittleEndian
 
+Indicates that the variable (or the elements of the array) are always encoded as little-endian.
+
 #### @Var
+
+Indicates that the variable (or the elements of the array) are always encoded as [Google varint](https://developers.google.com/protocol-buffers/docs/encoding).
 
 ### Array's Length
 
+Array's length attributes indicate how to serialize and deserialize the length of an array variable.
+
 #### @Length!(type)
+
+Indicates that the variable's length should be serialized and deserialized as the given type.
 
 #### @EndianLength!(type)(Endian)
 
+Like @Length indicates that the variable's length should be serialized and deserialized as the given type, with the addition that the variable's length is also serialized and deserialized with the given endianness.
+```d
+struct Test {
+
+    @EndianLength!ushort(Endian.bigEndian) ubyte[] a;
+
+}
+
+assert(Test([1, 2, 3]).serialize() == [0, 3, 1, 2, 3]);
+assert(Test([1, 2, 3]).serialize!(Endian.littleEndian, uint)() == [0, 3, 1, 2, 3]);
+```
+
 #### @NoLength
+
+Indicates that the variable's length should not be encoded. This attribute should only be used on the last field of the struct/class.
+When deserializing a variable with this attribute data is read until a `BufferOverflowException` is thrown.
