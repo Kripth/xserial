@@ -2,6 +2,7 @@
 
 import std.system : Endian, endian;
 import std.traits : isArray, isDynamicArray, isStaticArray, isAssociativeArray, ForeachType, KeyType, ValueType, isIntegral, isFloatingPoint, isSomeChar, isType, isCallable, isPointer, hasUDA, getUDAs;
+import std.typecons : isTuple;
 
 import xbuffer.buffer : canSwapEndianness, Buffer, BufferOverflowException;
 import xbuffer.memory : xalloc, xfree;
@@ -135,6 +136,8 @@ void serializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle
 	} else static if(isAssociativeArray!T) {
 		serializeLength!(cle, CL)(buffer, value.length);
 		serializeAssociativeArray!(endianness, OL, ole)(buffer, value);
+	} else static if(isTuple!T) {
+		serializeTuple!(endianness, OL, ole)(buffer, value);
 	} else static if(is(T == class) || is(T == struct)) {
 		serializeMembers!(endianness, OL, ole)(buffer, value);
 	} else static if(is(T : bool) || isIntegral!T || isFloatingPoint!T || isSomeChar!T) {
@@ -174,6 +177,12 @@ void serializeAssociativeArray(EndianType endianness, OL, EndianType ole, T)(Buf
 	foreach(key, value; array) {
 		serializeImpl!(endianness, OL, ole, OL, ole)(buffer, key);
 		serializeImpl!(endianness, OL, ole, OL, ole)(buffer, value);
+	}
+}
+
+void serializeTuple(EndianType endianness, OL, EndianType ole, T)(Buffer buffer, T tuple) if(isTuple!T) {
+	static foreach(i ; 0..tuple.fieldNames.length) {
+		serializeImpl!(endianness, OL, ole, OL, ole)(buffer, tuple[i]);
 	}
 }
 
@@ -229,6 +238,8 @@ T deserializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle,
 		return deserializeDynamicArray!(endianness, OL, ole, T)(buffer, deserializeLength!(cle, CL)(buffer));
 	} else static if(isAssociativeArray!T) {
 		return deserializeAssociativeArray!(endianness, OL, ole, T)(buffer, deserializeLength!(cle, CL)(buffer));
+	} else static if(isTuple!T) {
+		return deserializeTuple!(endianness, OL, ole, T)(buffer);
 	} else static if(is(T == class)) {
 		T ret = new T();
 		deserializeMembers!(endianness, OL, ole)(buffer, ret);
@@ -289,6 +300,14 @@ T deserializeNoLengthArray(EndianType endianness, OL, EndianType ole, T)(Buffer 
 	try {
 		while(true) ret ~= deserializeImpl!(endianness, OL, ole, OL, ole, ForeachType!T)(buffer);
 	} catch(BufferOverflowException) {}
+	return ret;
+}
+
+T deserializeTuple(EndianType endianness, OL, EndianType ole, T)(Buffer buffer) if(isTuple!T) {
+	T ret;
+	foreach(i, U; T.Types) {
+		ret[i] = deserializeImpl!(endianness, OL, ole, OL, ole, U)(buffer);
+	}
 	return ret;
 }
 
@@ -370,6 +389,19 @@ void deserializeMembers(EndianType endianness, L, EndianType le, C)(Buffer __buf
 
 	test = deserialize!(int[ushort], Endian.bigEndian, ubyte)([1, 0, 0, 0, 0, 0, 55]);
 	assert(test == [ushort(0): 55]);
+
+}
+
+@("tuples") unittest {
+
+	import std.typecons : Tuple, tuple;
+
+	assert(tuple(1, "test").serialize!(Endian.bigEndian, ushort)() == [0, 0, 0, 1, 0, 4, 't', 'e', 's', 't']);
+
+	Tuple!(ubyte, "a", uint[], "b") test;
+	test.a = 12;
+	assert(test.serialize!(Endian.littleEndian, uint)() == [12, 0, 0, 0, 0]);
+	assert(deserialize!(typeof(test), Endian.bigEndian, ushort)([12, 0, 0]) == test);
 
 }
 
