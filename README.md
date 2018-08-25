@@ -36,7 +36,7 @@ The first runtime argument is always the value that needs to be serialized and t
 The `serialize` template always returns an array of unsigned bytes.
 
 ```
-ubyte[] serialize!(Endian endianness=std.system.endian, L=size_t, T)(T value, Buffer buffer=new Buffer(64));
+ubyte[] serialize!(Endian endianness=std.system.endian, L=size_t, Endian lengthEndianness=endianness, T)(T value, Buffer buffer=new Buffer(64));
 ```
 
 ## Deserialization
@@ -46,8 +46,8 @@ The `deserialize` template has similar arguments as the `serialize` template, ex
 It returns an instance of the type passed at compile-time or throws a `BufferOverflowException` when there's not enough data to read.
 
 ```
-T deserialize!(T, Endian endianness=std.system.endian, L=size_t)(Buffer buffer);
-T deserialize!(T, Endian endianness=std.system.endian, L=size_t)(in ubyte[] buffer);
+T deserialize!(T, Endian endianness=std.system.endian, L=size_t, Endian lengthEndianness=endianness)(Buffer buffer);
+T deserialize!(T, Endian endianness=std.system.endian, L=size_t, Endian lengthEndianness=endianness)(in ubyte[] buffer);
 ```
 
 ## Attributes

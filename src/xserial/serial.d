@@ -13,16 +13,26 @@ import xserial.attribute;
 /**
  * Serializes some data.
  */
-ubyte[] serialize(Endian endianness, L, T)(T value, Buffer buffer) {
-	serializeImpl!(endianness, L, T)(buffer, value);
+ubyte[] serialize(Endian endianness, L, Endian lengthEndianness, T)(T value, Buffer buffer) {
+	serializeImpl!(endianness, L, lengthEndianness, T)(buffer, value);
 	return buffer.data!ubyte;
 }
 
 /// ditto
-ubyte[] serialize(Endian endianness, L, T)(T value) {
+ubyte[] serialize(Endian endianness, L, Endian lengthEndianness, T)(T value) {
 	Buffer buffer = xalloc!Buffer(64);
 	scope(exit) xfree(buffer);
-	return serialize!(endianness, L, T)(value, buffer).dup;
+	return serialize!(endianness, L, lengthEndianness, T)(value, buffer).dup;
+}
+
+/// ditto
+ubyte[] serialize(Endian endianness, L, T)(T value, Buffer buffer) {
+	return serialize!(endianness, L, endianness, T)(value, buffer);
+}
+
+/// ditto
+ubyte[] serialize(Endian endianness, L, T)(T value) {
+	return serialize!(endianness, L, endianness, T)(value);
 }
 
 /// ditto
@@ -48,15 +58,25 @@ ubyte[] serialize(T)(T value) {
 /**
  * Deserializes some data.
  */
+T deserialize(T, Endian endianness, L, Endian lengthEndianness)(Buffer buffer) {
+	return deserializeImpl!(endianness, L, lengthEndianness, T)(buffer);
+}
+
+/// ditto
+T deserialize(T, Endian endianness, L, Endian lengthEndianness)(in ubyte[] data) {
+	Buffer buffer = xalloc!Buffer(data);
+	scope(exit) xfree(buffer);
+	return deserialize!(T, endianness, L, lengthEndianness)(buffer);
+}
+
+/// ditto
 T deserialize(T, Endian endianness, L)(Buffer buffer) {
-	return deserializeImpl!(endianness, L, T)(buffer);
+	return deserialize!(T, endianness, L, endianness)(buffer);
 }
 
 /// ditto
 T deserialize(T, Endian endianness, L)(in ubyte[] data) {
-	Buffer buffer = xalloc!Buffer(data);
-	scope(exit) xfree(buffer);
-	return deserialize!(T, endianness, L)(buffer);
+	return deserialize!(T, endianness, L, endianness)(data);
 }
 
 /// ditto
@@ -124,9 +144,9 @@ template Members(T, alias Only) {
 // serialization
 // -------------
 
-void serializeImpl(Endian endianness, L, T)(Buffer buffer, T value) {
+void serializeImpl(Endian endianness, L, Endian lengthEndianness, T)(Buffer buffer, T value) {
 	static if(isVar!L) serializeImpl!(cast(EndianType)endianness, L.Type, EndianType.var, L.Type, EndianType.var, T)(buffer, value);
-	else serializeImpl!(cast(EndianType)endianness, L, cast(EndianType)endianness, L, cast(EndianType)endianness, T)(buffer, value);
+	else serializeImpl!(cast(EndianType)endianness, L, cast(EndianType)lengthEndianness, L, cast(EndianType)lengthEndianness, T)(buffer, value);
 }
 
 void serializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle, T)(Buffer buffer, T value) {
@@ -226,9 +246,9 @@ void serializeMembers(EndianType endianness, L, EndianType le, T)(Buffer __buffe
 // deserialization
 // ---------------
 
-T deserializeImpl(Endian endianness, L, T)(Buffer buffer) {
+T deserializeImpl(Endian endianness, L, Endian lengthEndianness, T)(Buffer buffer) {
 	static if(isVar!L) return deserializeImpl!(cast(EndianType)endianness, L.Type, EndianType.var, L.Type, EndianType.var, T)(buffer);
-	else return deserializeImpl!(cast(EndianType)endianness, L, cast(EndianType)endianness, L, cast(EndianType)endianness, T)(buffer);
+	else return deserializeImpl!(cast(EndianType)endianness, L, cast(EndianType)lengthEndianness, L, cast(EndianType)lengthEndianness, T)(buffer);
 }
 
 T deserializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle, T)(Buffer buffer) {
