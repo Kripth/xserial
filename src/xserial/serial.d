@@ -159,7 +159,11 @@ void serializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle
 	} else static if(isTuple!T) {
 		serializeTuple!(endianness, OL, ole)(buffer, value);
 	} else static if(is(T == class) || is(T == struct)) {
-		serializeMembers!(endianness, OL, ole)(buffer, value);
+		static if(__traits(hasMember, T, "serialize") && __traits(compiles, value.serialize(buffer))) {
+			value.serialize(buffer);
+		} else {
+			serializeMembers!(endianness, OL, ole)(buffer, value);
+		}
 	} else static if(is(T : bool) || isIntegral!T || isFloatingPoint!T || isSomeChar!T) {
 		serializeNumber!endianness(buffer, value);
 	} else {
@@ -260,13 +264,14 @@ T deserializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle,
 		return deserializeAssociativeArray!(endianness, OL, ole, T)(buffer, deserializeLength!(cle, CL)(buffer));
 	} else static if(isTuple!T) {
 		return deserializeTuple!(endianness, OL, ole, T)(buffer);
-	} else static if(is(T == class)) {
-		T ret = new T();
-		deserializeMembers!(endianness, OL, ole)(buffer, ret);
-		return ret;
-	} else static if(is(T == struct)) {
+	} else static if(is(T == class) || is(T == struct)) {
 		T ret;
-		deserializeMembers!(endianness, OL, ole)(buffer, &ret);
+		static if(is(T == class)) ret = new T();
+		static if(__traits(hasMember, T, "deserialize") && __traits(compiles, ret.deserialize(buffer))) {
+			ret.deserialize(buffer);
+		} else {
+			deserializeMembers!(endianness, OL, ole)(buffer, &ret);
+		}
 		return ret;
 	} else static if(is(T : bool) || isIntegral!T || isFloatingPoint!T || isSomeChar!T) {
 		return deserializeNumber!(endianness, T)(buffer);
@@ -427,16 +432,47 @@ void deserializeMembers(EndianType endianness, L, EndianType le, C)(Buffer __buf
 
 @("structs and classes") unittest {
 
-	struct Test {
+	struct Test1 {
 
 		byte a, b, c;
 
 	}
 
-	Test test = Test(1, 3, 55);
-	assert(test.serialize() == [1, 3, 55]);
+	Test1 test1 = Test1(1, 3, 55);
+	assert(test1.serialize() == [1, 3, 55]);
 
-	assert(deserialize!Test([1, 3, 55]) == test);
+	assert(deserialize!Test1([1, 3, 55]) == test1);
+
+	static struct Test2 {
+
+		int a;
+
+		void serialize(Buffer buffer) {
+			buffer.write!(Endian.bigEndian)(this.a + 1);
+		}
+
+		void deserialize(Buffer buffer) {
+			this.a = buffer.read!(Endian.bigEndian, int)() - 1;
+		}
+
+	}
+
+	assert(serialize(Test2(5)) == [0, 0, 0, 6]);
+	assert(deserialize!Test2([0, 0, 0, 6]) == Test2(5));
+
+	static class Test3 {
+
+		ubyte a;
+
+		void serialize() {}
+
+		void deserialize() {}
+
+	}
+
+	Test3 test3 = new Test3();
+	assert(serialize(test3) == [0]);
+	assert(deserialize!Test3([5]).a == 5);
 
 }
 
