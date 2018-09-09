@@ -29,14 +29,14 @@ Usage
 
 ## Serialization
 
-The `serialize` template is publicly imported in the `xserial` module. It takes, optionally, the endianness and the array length to be used for serializing; if not provided the system's endianness is used and `size_t` is used to encode arrays' lengths.
+The `serialize` template is publicly imported in the `xserial` module. It takes, optionally, the endianness and the array length to be used for serializing; if not provided the system's endianness is used and `uint` is used to encode arrays' lengths.
 
 The first runtime argument is always the value that needs to be serialized and the second optional argument is a [xbuffer](https://github.com/Kripth/xbuffer)'s `Buffer`, that can be used when serializing more than one type by reusing the buffer.
 
 The `serialize` template always returns an array of unsigned bytes.
 
 ```
-ubyte[] serialize!(Endian endianness=std.system.endian, L=size_t, Endian lengthEndianness=endianness, T)(T value, Buffer buffer=new Buffer(64));
+ubyte[] serialize!(Endian endianness=std.system.endian, L=uint, Endian lengthEndianness=endianness, T)(T value, Buffer buffer=new Buffer(64));
 ```
 
 ## Deserialization
@@ -46,8 +46,8 @@ The `deserialize` template has similar arguments as the `serialize` template, ex
 It returns an instance of the type passed at compile-time or throws a `BufferOverflowException` when there's not enough data to read.
 
 ```
-T deserialize!(T, Endian endianness=std.system.endian, L=size_t, Endian lengthEndianness=endianness)(Buffer buffer);
-T deserialize!(T, Endian endianness=std.system.endian, L=size_t, Endian lengthEndianness=endianness)(in ubyte[] buffer);
+T deserialize!(T, Endian endianness=std.system.endian, L=uint, Endian lengthEndianness=endianness)(Buffer buffer);
+T deserialize!(T, Endian endianness=std.system.endian, L=uint, Endian lengthEndianness=endianness)(in ubyte[] buffer);
 ```
 
 ## Attributes

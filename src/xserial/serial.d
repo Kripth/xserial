@@ -37,22 +37,22 @@ ubyte[] serialize(Endian endianness, L, T)(T value) {
 
 /// ditto
 ubyte[] serialize(Endian endianness, T)(T value, Buffer buffer) {
-	return serialize!(endianness, size_t)(value, buffer);
+	return serialize!(endianness, uint)(value, buffer);
 }
 
 /// ditto
 ubyte[] serialize(Endian endianness, T)(T value) {
-	return serialize!(endianness, size_t)(value);
+	return serialize!(endianness, uint)(value);
 }
 
 /// ditto
 ubyte[] serialize(T)(T value, Buffer buffer) {
-	return serialize!(endian, size_t, T)(value, buffer);
+	return serialize!(endian, uint, T)(value, buffer);
 }
 
 /// ditto
 ubyte[] serialize(T)(T value) {
-	return serialize!(endian, size_t, T)(value);
+	return serialize!(endian, uint, T)(value);
 }
 
 /**
@@ -81,22 +81,22 @@ T deserialize(T, Endian endianness, L)(in ubyte[] data) {
 
 /// ditto
 T deserialize(T, Endian endianness)(Buffer buffer) {
-	return deserialize!(T, endianness, size_t)(buffer);
+	return deserialize!(T, endianness, uint)(buffer);
 }
 
 /// ditto
 T deserialize(T, Endian endianness)(in ubyte[] data) {
-	return deserialize!(T, endianness, size_t)(data);
+	return deserialize!(T, endianness, uint)(data);
 }
 
 /// ditto
 T deserialize(T)(Buffer buffer) {
-	return deserialize!(T, endian, size_t)(buffer);
+	return deserialize!(T, endian, uint)(buffer);
 }
 
 /// ditto
 T deserialize(T)(in ubyte[] data) {
-	return deserialize!(T, endian, size_t)(data);
+	return deserialize!(T, endian, uint)(data);
 }
 
 // -----------
