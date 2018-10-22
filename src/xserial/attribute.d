@@ -13,6 +13,14 @@ import xserial.serial : EndianType;
 enum Exclude;
 
 /**
+ * Includes this even if it would otherwise be excluded.
+ * If Exclude (or other UDA(@)) and Include are present value will be included.
+ * Can also be used on @property methods to include them. (Be sure both the setter and getter exist!)
+ * If used on a value of a base class value will be included.
+ */
+ enum Include;
+
+/**
  * Excludes the field from decoding, encode only.
  */
 enum EncodeOnly;
@@ -58,7 +66,7 @@ template Length(T) if(isVar!T) { enum Length = LengthImpl(T.Base.stringof, Endia
 
 LengthImpl EndianLength(T)(Endian endianness) if(isIntegral!T) { return LengthImpl(T.stringof, endianness); }
 
-struct Custom(T) if(is(T == struct) || is(T == class)) { alias C = T; }
+struct Custom(T) if(is(T == struct) || is(T == class) || is(T == interface)) { alias C = T; }
 
 unittest { // for code coverage
 
