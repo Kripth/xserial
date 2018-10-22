@@ -128,7 +128,7 @@ template Members(T, alias Only) {
 					(
 						hasUDA!(__traits(getMember, T, member), Include) ||
 						(
-							__traits(derivedMembers, T).canFind(member) &&
+							[__traits(derivedMembers, T)].canFind(member) &&
 							!__traits(compiles, { mixin("auto test=T." ~ member ~ ";"); }) &&			// static members
 							!__traits(compiles, { mixin("auto test=T.init." ~ member ~ "();"); }) &&	// properties
 							!hasUDA!(__traits(getMember, T, member), Exclude) &&
