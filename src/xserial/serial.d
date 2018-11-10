@@ -1,8 +1,9 @@
-﻿module xserial.serial;
+module xserial.serial;
 
 import std.system : Endian, endian;
 import std.traits : isArray, isDynamicArray, isStaticArray, isAssociativeArray, ForeachType, KeyType, ValueType, isIntegral, isFloatingPoint, isSomeChar, isType, isCallable, isPointer, hasUDA, getUDAs;
 import std.typecons : isTuple;
+import std.algorithm.searching : canFind;
 
 import xbuffer.buffer : canSwapEndianness, Buffer, BufferOverflowException;
 import xbuffer.memory : xalloc, xfree;
@@ -118,17 +119,23 @@ template Members(T, alias Only) {
 	mixin({
 			
 		string ret = "alias Members = TypeTuple!(";
-		foreach(member ; __traits(derivedMembers, T)) {
+		foreach(member ; __traits(allMembers, T)) {
 			static if(is(typeof(mixin("T." ~ member)))) {
 				mixin("alias M = typeof(T." ~ member ~ ");");
 				static if(
 					isType!M &&
 					!isCallable!M &&
-					!__traits(compiles, { mixin("auto test=T." ~ member ~ ";"); }) &&			// static members
-					!__traits(compiles, { mixin("auto test=T.init." ~ member ~ "();"); }) &&	// properties
-					!hasUDA!(__traits(getMember, T, member), Exclude) &&
-					!hasUDA!(__traits(getMember, T, member), Only)
-					) {
+					(
+						hasUDA!(__traits(getMember, T, member), Include) ||
+						(
+							[__traits(derivedMembers, T)].canFind(member) &&
+							!__traits(compiles, { mixin("auto test=T." ~ member ~ ";"); }) &&			// static members
+							!__traits(compiles, { mixin("auto test=T.init." ~ member ~ "();"); }) &&	// properties
+							!hasUDA!(__traits(getMember, T, member), Exclude) &&
+							!hasUDA!(__traits(getMember, T, member), Only)
+						)
+					)
+					){
 					ret ~= `"` ~ member ~ `",`;
 					
 				}
@@ -158,7 +165,7 @@ void serializeImpl(EndianType endianness, OL, EndianType ole, CL, EndianType cle
 		serializeAssociativeArray!(endianness, OL, ole)(buffer, value);
 	} else static if(isTuple!T) {
 		serializeTuple!(endianness, OL, ole)(buffer, value);
-	} else static if(is(T == class) || is(T == struct)) {
+	} else static if(is(T == class) || is(T == struct) || is(T == interface)) {
 		static if(__traits(hasMember, T, "serialize") && __traits(compiles, value.serialize(buffer))) {
 			value.serialize(buffer);
 		} else {
@@ -237,7 +244,7 @@ void serializeMembers(EndianType endianness, L, EndianType le, T)(Buffer __buffe
 			else static if(hasUDA!(__traits(getMember, T, member), BigEndian)) immutable ret = "xserial.serial.serializeImpl!(EndianType.bigEndian, " ~ e ~ ", M)(__buffer, __container." ~ member ~ ");";
 			else static if(hasUDA!(__traits(getMember, T, member), LittleEndian)) immutable ret = "xserial.serial.serializeImpl!(EndianType.littleEndian, " ~ e ~ ", M)(__buffer, __container." ~ member ~ ");";
 			else immutable ret = "xserial.serial.serializeImpl!(endianness, " ~ e ~ ", M)(__buffer, __container." ~ member ~ ");";
-
+			
 			static if(!hasUDA!(__traits(getMember, T, member), Condition)) return ret;
 			else return "with(__container){if(" ~ getUDAs!(__traits(getMember, T, member), Condition)[0].condition ~ "){" ~ ret ~ "}}";
 			
